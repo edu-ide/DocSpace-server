@@ -24,12 +24,18 @@
 // content are licensed under the terms of the Creative Commons Attribution-ShareAlike 4.0
 // International. See the License terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
 
+using ASC.AI.Core.Prompts;
+using ASC.AI.Core.UserSearch;
+using ASC.Core.Data;
+using Tweetinvi.Controllers.Properties;
+
 namespace ASC.AI.Core.Chat;
 
 [Scope]
 public class ChatTools(
     McpService mcpService,
-    KnowledgeSearchEngine searchEngine)
+    KnowledgeSearchEngine searchEngine,
+    UserSearchService userSearchService)
 {
     public async Task<ToolHolder> GetAsync(int roomId)
     {
@@ -37,6 +43,9 @@ public class ChatTools(
         
         var searchTool = MakeKnowledgeSearchTool(roomId);
         holder.AddTool(searchTool);
+        
+        var userSearchTool = MakeUserSearchTool(roomId);
+        holder.AddTool(userSearchTool);
         
         return holder;
     }
@@ -57,6 +66,30 @@ public class ChatTools(
             Properties = new ToolProperties
             {
                 Name = searchTool.Name,
+                RoomId = roomId,
+                AutoInvoke = true
+            }
+        };
+    }
+    
+    private ToolWrapper MakeUserSearchTool(int roomId)
+    {
+        var userSearchTool = AIFunctionFactory.Create(
+            ([Description(ToolPrompts.UserSearchQueryPromt)] UserSearchPayload request) => 
+                userSearchService.SearchUsersAsync(request), 
+            new AIFunctionFactoryOptions
+            {
+                Name = "docspace_user_search",
+                Description = ToolPrompts.UserSearchToolPromt,
+                
+            });
+
+        return new ToolWrapper
+        {
+            Tool = userSearchTool, 
+            Properties = new ToolProperties
+            {
+                Name = userSearchTool.Name,
                 RoomId = roomId,
                 AutoInvoke = true
             }

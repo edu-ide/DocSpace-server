@@ -27,6 +27,7 @@
 using Microsoft.AspNetCore.Http.Extensions;
 
 using Constants = ASC.Core.Users.Constants;
+using ASC.Core.Data;
 
 namespace ASC.Core;
 
@@ -151,6 +152,16 @@ public class UserManager(
         filter.OwnerId = Tenant.OwnerId;
         
         return userService.GetUsers(filter);
+    }
+
+    public Task<int> GetUsersCountAsync(UserSearchPayload searchPayload)
+    {
+        return userService.GetUsersCountAsync(Tenant.Id, searchPayload);
+    }
+
+    public IAsyncEnumerable<UserInfo> GetUsersAsync(UserSearchPayload searchPayload, int offset = 0, int limit = 50, UserSortType sortType = UserSortType.FirstName, bool sortOrderAsc = true)
+    {
+        return userService.GetUsersAsync(Tenant.Id, searchPayload, offset, limit, sortType, sortOrderAsc);
     }
 
     public UserInfo GetUsers(Guid id)

@@ -24,6 +24,8 @@
 // content are licensed under the terms of the Creative Commons Attribution-ShareAlike 4.0
 // International. See the License terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
 
+using ASC.Core.Data;
+
 namespace ASC.Core;
 
 public interface IUserService
@@ -59,4 +61,6 @@ public interface IUserService
     Task<Dictionary<Guid, UserRelation>> GetUserRelationsAsync(int tenantId, Guid sourceUserId);
     Task<Dictionary<Guid, UserRelation>> GetUserRelationsByTargetAsync(int tenantId, Guid targetUserId);
     Task DeleteUserRelationAsync(int tenantId, Guid sourceUserId, Guid targetUserId);
+    Task<int> GetUsersCountAsync(int tenant, UserSearchPayload searchPayload);
+    IAsyncEnumerable<UserInfo> GetUsersAsync(int tenant, UserSearchPayload searchPayload, int offset = 0, int limit = 50, UserSortType sortType = UserSortType.FirstName, bool sortOrderAsc = true);
 }

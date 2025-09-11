@@ -24,6 +24,8 @@
 // content are licensed under the terms of the Creative Commons Attribution-ShareAlike 4.0
 // International. See the License terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
 
+using ASC.Core.Data;
+
 namespace ASC.Core.Caching;
 
 
@@ -371,5 +373,15 @@ public class CachedUserService : IUserService
     public async Task<IEnumerable<string>> GetDavUserEmailsAsync(int tenant)
     {
         return await _service.GetDavUserEmailsAsync(tenant);
+    }
+
+    public Task<int> GetUsersCountAsync(int tenant, UserSearchPayload searchPayload)
+    {
+        return _service.GetUsersCountAsync(tenant, searchPayload);
+    }
+
+    public IAsyncEnumerable<UserInfo> GetUsersAsync(int tenant, UserSearchPayload searchPayload, int offset = 0, int limit = 50, UserSortType sortType = UserSortType.FirstName, bool sortOrderAsc = true)
+    {
+        return _service.GetUsersAsync(tenant, searchPayload, offset, limit, sortType, sortOrderAsc);
     }
 }

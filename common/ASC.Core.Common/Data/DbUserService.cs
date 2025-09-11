@@ -25,6 +25,7 @@
 // International. See the License terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
 
 using Constants = ASC.Core.Users.Constants;
+using ASC.Core.Data;
 
 namespace ASC.Core.Data;
 
@@ -996,6 +997,75 @@ public class EFUserService(
     {
         await using var userDbContext = await dbContextFactory.CreateDbContextAsync();
         return await userDbContext.EmailsAsync(tenant).ToListAsync();
+    }
+
+    public async Task<int> GetUsersCountAsync(int tenant, UserSearchPayload searchPayload)
+    {
+        await using var userDbContext = await dbContextFactory.CreateDbContextAsync();
+        
+        var q = GetUserQuery(userDbContext, tenant);
+        q = q.Where(r => !r.Removed);
+        
+        var searchExpression = UserSearchExpressionBuilder.BuildExpression(searchPayload);
+        q = q.Where(searchExpression);
+        
+        return await q.CountAsync();
+    }
+
+    public async IAsyncEnumerable<UserInfo> GetUsersAsync(int tenant, UserSearchPayload searchPayload, int offset = 0, int limit = 50, UserSortType sortType = UserSortType.FirstName, bool sortOrderAsc = true)
+    {
+        if (limit <= 0)
+        {
+            yield break;
+        }
+
+        await using var userDbContext = await dbContextFactory.CreateDbContextAsync();
+        
+        var q = GetUserQuery(userDbContext, tenant);
+        q = q.Where(r => !r.Removed);
+        
+        var searchExpression = UserSearchExpressionBuilder.BuildExpression(searchPayload);
+        q = q.Where(searchExpression);
+
+        // Apply sorting
+        switch (sortType)
+        {
+            case UserSortType.RegistrationDate:
+                q = sortOrderAsc 
+                    ? q.OrderBy(r => r.CreateDate) 
+                    : q.OrderByDescending(r => r.CreateDate);
+                break;
+            case UserSortType.Email:
+                q = sortOrderAsc ? q.OrderBy(u => u.Email) : q.OrderByDescending(u => u.Email);
+                break;
+            case UserSortType.LastName:
+                q = sortOrderAsc
+                    ? q.OrderBy(r => r.Status == EmployeeStatus.Active ? 0 : r.Status == EmployeeStatus.Pending ? 1 : 2)
+                       .ThenBy(u => u.Status == EmployeeStatus.Pending ? u.Email : u.LastName)
+                    : q.OrderBy(r => r.Status == EmployeeStatus.Active ? 0 : r.Status == EmployeeStatus.Pending ? 1 : 2)
+                       .ThenByDescending(u => u.Status == EmployeeStatus.Pending ? u.Email : u.LastName);
+                break;
+            case UserSortType.FirstName:
+            default:
+                q = sortOrderAsc
+                    ? q.OrderBy(r => r.Status == EmployeeStatus.Active ? 0 : r.Status == EmployeeStatus.Pending ? 1 : 2)
+                       .ThenBy(u => u.Status == EmployeeStatus.Pending ? u.Email : u.FirstName)
+                    : q.OrderBy(r => r.Status == EmployeeStatus.Active ? 0 : r.Status == EmployeeStatus.Pending ? 1 : 2)
+                       .ThenByDescending(u => u.Status == EmployeeStatus.Pending ? u.Email : u.FirstName);
+                break;
+        }
+
+        if (offset > 0)
+        {
+            q = q.Skip(offset);
+        }
+
+        q = q.Take(limit);
+
+        await foreach (var user in q.ToAsyncEnumerable())
+        {
+            yield return mapper.Map<User, UserInfo>(user);
+        }
     }
 
     private string GetPasswordHash(Guid userId, string password)
