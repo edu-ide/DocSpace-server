@@ -74,8 +74,14 @@ public class ChatTools(
     
     private ToolWrapper MakeUserSearchTool(int roomId)
     {
+        var currentDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var currentYear = DateTime.UtcNow.Year;
+        var dateAwarePrompt = $"CURRENT DATE CONTEXT: Today is {currentDate} (Current year: {currentYear})\n\n" +
+                             "IMPORTANT: Use the current date context above for processing relative dates like \"this year\", \"last month\", \"since beginning of year\", etc.\n\n" +
+                             ToolPrompts.UserSearchQueryPromt;
+        
         var userSearchTool = AIFunctionFactory.Create(
-            ([Description(ToolPrompts.UserSearchQueryPromt)] UserSearchPayload request) => 
+            ([Description(dateAwarePrompt)] UserSearchPayload request) => 
                 userSearchService.SearchUsersAsync(request), 
             new AIFunctionFactoryOptions
             {
