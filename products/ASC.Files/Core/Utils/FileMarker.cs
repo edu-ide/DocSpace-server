@@ -1202,14 +1202,13 @@ public class FileMarker(
     {
         var tagDao = daoFactory.GetTagDao<T>();
         var userId = authContext.CurrentAccount.ID;
-        var linkIdString = linkId.ToString();
 
         var tags = await tagDao.GetTagsAsync(userId, [TagType.RecentByLink, TagType.Recent], [entry])
             .ToDictionaryAsync(k => k.Name);
 
         if (tags.Count > 0)
         {
-            var toRemove = tags.Values.Where(t => t.Name != linkIdString);
+            var toRemove = tags.Values.Where(t => !Guid.TryParse(t.Name, out _));
 
             await tagDao.RemoveTagsAsync(toRemove);
         }

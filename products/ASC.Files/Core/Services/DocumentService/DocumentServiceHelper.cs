@@ -140,10 +140,15 @@ public class DocumentServiceHelper(IDaoFactory daoFactory,
         return true;
     }
 
-    private async Task<(File<T> File, Configuration<T> Configuration, bool LocatedInPrivateRoom)> GetParamsAsync<T>(File<T> file, bool lastVersion,
-        bool rightToEdit, bool editPossible, bool tryEdit, bool tryCoAuthoring, bool fillFormsPossible)
+    private async Task<(File<T> File, Configuration<T> Configuration, bool LocatedInPrivateRoom)> GetParamsAsync<T>(
+        File<T> file, 
+        bool lastVersion,
+        bool rightToEdit, 
+        bool editPossible, 
+        bool tryEdit, 
+        bool tryCoAuthoring, 
+        bool fillFormsPossible)
     {
-
         if (file == null)
         {
             throw new FileNotFoundException(FilesCommonResource.ErrorMessage_FileNotFound);
@@ -163,7 +168,13 @@ public class DocumentServiceHelper(IDaoFactory daoFactory,
         var commentPossible = editPossible;
 
         var rightModifyFilter = rightToEdit;
-
+        
+        var linkId = await externalShare.GetLinkIdAsync();
+        var securityDao = daoFactory.GetSecurityDao<T>();
+        var record = await securityDao.GetSharesAsync([linkId]).FirstOrDefaultAsync();
+        
+        _ = await fileSecurity.SetSecurity(new[] { file }.ToAsyncEnumerable(), record != null ? [record] : null).ToListAsync();
+        
         rightToEdit = rightToEdit && (await fileSecurity.CanEditAsync(file) || await fileSecurity.CanCustomFilterEditAsync(file));
         if (editPossible && !rightToEdit)
         {
