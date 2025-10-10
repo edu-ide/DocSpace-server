@@ -267,6 +267,20 @@ public class TenantManager(
             {
                 tenant = await GetTenantByOrigin(context);
             }
+
+            // CUSTOMIZED: For wizard and self-hosted installations, use first tenant if not found
+            if (tenant == null && coreBaseSettings.Standalone)
+            {
+                var isWizardRequest = context.Request.Path.StartsWithSegments("/api/2.0/settings/wizard") ||
+                                      context.Request.Path.StartsWithSegments("/api/2.0/settings") ||
+                                      context.Request.Headers.ContainsKey("confirm");
+
+                if (isWizardRequest)
+                {
+                    // For wizard/settings requests without resolved tenant, use tenant ID 1
+                    tenant = await GetTenantAsync(1);
+                }
+            }
         }
 
         SetCurrentTenant(tenant);
